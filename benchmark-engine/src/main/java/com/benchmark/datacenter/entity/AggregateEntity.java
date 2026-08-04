@@ -1,12 +1,12 @@
 package com.benchmark.datacenter.entity;
 
-import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -51,7 +51,7 @@ public class AggregateEntity {
     private BigDecimal sumSqValue = BigDecimal.ZERO;
 
     @Builder.Default
-    @Type(JsonType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "category_counts", columnDefinition = "jsonb", nullable = false)
     private Map<String, Integer> categoryCounts = Map.of();
 

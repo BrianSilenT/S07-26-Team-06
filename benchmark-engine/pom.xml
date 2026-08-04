@@ -18,7 +18,7 @@
     <description>Motor del benchmark de madurez de coordinacion energia/cooling/workloads</description>
 
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
         <springdoc.version>2.5.0</springdoc.version>
     </properties>
 
@@ -39,11 +39,6 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.vladmihalcea</groupId>
-            <artifactId>hibernate-types-60</artifactId>
-            <version>2.21.1</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -1,12 +1,12 @@
 package com.benchmark.datacenter.entity;
 
-import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.Map;
@@ -42,7 +42,7 @@ public class ResponseEntity {
     @Column(name = "region", nullable = false)
     private String region;
 
-    @Type(JsonType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_answers", columnDefinition = "jsonb", nullable = false)
     private Map<String, Object> rawAnswers;
 
