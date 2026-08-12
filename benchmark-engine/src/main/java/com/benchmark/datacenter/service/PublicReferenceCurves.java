@@ -1,8 +1,15 @@
 package com.benchmark.datacenter.service;
 
 import com.benchmark.datacenter.entity.Dimension;
+import com.benchmark.datacenter.entity.PublicReferenceCurvePointEntity;
+import com.benchmark.datacenter.repository.PublicReferenceCurveRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -10,31 +17,60 @@ import java.util.Map;
  * output desde el dia 1 (antes de tener datos primarios) y como el
  * "ancla" que el rebalanceo va diluyendo a medida que N crece.
  *
- * *** PLACEHOLDER ***
- * Los breakpoints de abajo son estimaciones razonadas a partir de
- * literatura publica de la industria sobre stranded capacity y
- * madurez operativa de data centers (no una calibracion formal).
- * Reemplazar en Fase 1 con un analisis real de fuentes publicas
- * (reportes de Uptime Institute, papers de eficiencia operativa, etc.)
- * antes de publicar el benchmark. La forma de la curva (sesgada hacia
- * valores bajos, ya que la premisa del producto es que la mayoria de
- * la industria NO coordina bien estas capas) si es intencional.
+ * Los breakpoints viven en la tabla `public_reference_curves` (no
+ * hardcodeados en Java) para poder recalibrarse desde el Table Editor
+ * de Supabase sin redeploy. Se cargan una vez al arrancar la app y se
+ * cachean en memoria -- si alguien edita la tabla, hace falta reiniciar
+ * el backend para que tome el cambio (ver README, "Pendiente para Fase 1"
+ * si se quiere hot-reload mas adelante).
  *
- * Cada array tiene 11 valores = el valor de la dimension en los
- * percentiles 0,10,20,...,100 (interpolacion lineal entre puntos).
+ * Trazabilidad de cada valor: ver SOURCES.md y el propio V2__public_reference_curves.sql
+ * (fuente principal: Uptime Institute, "Global Data Center Survey 2025").
+ *
+ * Los arrays de DEFAULT_CURVES de abajo son un respaldo defensivo: si
+ * por algun motivo la DB no tiene filas para una dimension (ej. antes
+ * de correr la migracion V2), se usan estos valores en vez de romper.
  */
 @Component
+@RequiredArgsConstructor
+@Slf4j
 public class PublicReferenceCurves {
 
-    private static final Map<Dimension, int[]> CURVES = Map.of(
-            Dimension.VISIBILITY,            new int[]{0, 5, 10, 15, 22, 30, 40, 52, 65, 80, 100},
-            Dimension.COORDINATION_LATENCY,  new int[]{0, 10, 18, 25, 32, 40, 50, 62, 75, 88, 100},
-            Dimension.SELF_QUANTIFICATION,   new int[]{0, 5, 8, 12, 18, 25, 35, 48, 62, 80, 100},
-            Dimension.COMPOSITE,             new int[]{0, 7, 12, 18, 25, 33, 42, 54, 67, 82, 100}
+    private static final Map<Dimension, int[]> DEFAULT_CURVES = Map.of(
+            Dimension.VISIBILITY,            new int[]{0, 4, 8, 13, 19, 27, 37, 50, 64, 80, 100},
+            Dimension.COORDINATION_LATENCY,  new int[]{0, 8, 15, 21, 28, 35, 45, 58, 72, 87, 100},
+            Dimension.SELF_QUANTIFICATION,   new int[]{0, 3, 6, 9, 14, 20, 30, 43, 58, 78, 100},
+            Dimension.COMPOSITE,             new int[]{0, 5, 10, 15, 21, 28, 38, 51, 65, 82, 100}
     );
 
+    private final PublicReferenceCurveRepository repository;
+
+    private final Map<Dimension, int[]> curves = new EnumMap<>(Dimension.class);
+
+    @PostConstruct
+    void loadFromDatabase() {
+        for (Dimension dimension : Dimension.values()) {
+            List<PublicReferenceCurvePointEntity> points = repository.findByDimensionOrderByPercentileAsc(dimension.key());
+
+            if (points.size() != 11) {
+                log.warn("public_reference_curves tiene {} filas para '{}' (se esperaban 11). " +
+                                "Usando curva por defecto hardcodeada -- corre la migracion V2 o revisa la tabla.",
+                        points.size(), dimension.key());
+                curves.put(dimension, DEFAULT_CURVES.get(dimension));
+                continue;
+            }
+
+            int[] curve = new int[11];
+            for (PublicReferenceCurvePointEntity p : points) {
+                curve[p.getPercentile() / 10] = p.getValue();
+            }
+            curves.put(dimension, curve);
+        }
+        log.info("Curvas de referencia publica cargadas desde la DB: {}", curves);
+    }
+
     public int[] curveFor(Dimension dimension) {
-        return CURVES.get(dimension);
+        return curves.get(dimension);
     }
 
     /** Percentil (0-100) del valor dado contra la curva publica, por interpolacion lineal. */
