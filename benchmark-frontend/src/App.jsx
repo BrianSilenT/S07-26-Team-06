@@ -789,8 +789,11 @@ function Results({ result, onRestart }) {
       </div>
 
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <button className="bmk-btn-primary" onClick={() => window.open(`${API_BASE_URL}/pdf-input/${responseId}`, "_blank")}>
-          <Sparkles size={15} /> Ver JSON del reporte (GET /pdf-input/:id)
+        <button className="bmk-btn-primary" onClick={() => window.open(`${API_BASE_URL}/reports/${responseId}/pdf`, "_blank")}>
+          <Sparkles size={15} /> Descargar reporte en PDF
+        </button>
+        <button className="bmk-btn-secondary" onClick={() => window.open(`${API_BASE_URL}/pdf-input/${responseId}`, "_blank")}>
+          Ver JSON (GET /pdf-input/:id)
         </button>
         <button className="bmk-btn-secondary" onClick={onRestart}><RotateCcw size={15} /> Volver a intentar</button>
       </div>

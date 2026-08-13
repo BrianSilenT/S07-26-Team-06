@@ -31,6 +31,7 @@ Flyway corre `V1__init_schema.sql` automáticamente al arrancar y crea
 | `GET` | `/results/{id}` | Output personalizado: percentiles, perfil cualitativo, insight de cuartil superior |
 | `GET` | `/aggregates?segment=` | Dataset agregado y anónimo. `segment` opcional (`global`, `industry:HYPERSCALE`, `region:LATAM`, `size:MW_1_5`) |
 | `GET` | `/pdf-input/{id}` | JSON de entrada para el generador de PDF (Proyecto 5) |
+| `GET` | `/reports/{id}/pdf` | Descarga el reporte del operador ya renderizado como PDF |
 
 Documentación interactiva en `/docs` (Swagger UI) una vez levantado.
 
@@ -119,7 +120,16 @@ y distribución de categóricas por segmento.
 
 ## Pendiente para Fase 1 (fuera de este entregable)
 
-- Calibrar `PublicReferenceCurves` con fuentes públicas reales.
+- Los breakpoints de `public_reference_curves` ya están calibrados con
+  una fuente real (Uptime Institute GDCS 2025, ver `SOURCES.md`), pero
+  siguen siendo una estimación razonada, no una calibración estadística
+  formal. Sumar una segunda fuente independiente sigue pendiente.
+- Los valores ahora viven en la tabla `public_reference_curves` (Supabase),
+  no hardcodeados -- se pueden editar desde el Table Editor. **Importante:**
+  el backend los cachea en memoria al arrancar (`PublicReferenceCurves.loadFromDatabase()`),
+  así que un cambio en la tabla requiere reiniciar la app para tomar efecto.
+  Si esto se vuelve friccioso, considerar un refresh periódico o un
+  endpoint admin para forzar el reload sin restart.
 - Definir si el rubric de `ScoringService` necesita revisión por
   alguien con expertise de dominio (los pesos actuales son un punto
   de partida razonado, no una calibración validada).
